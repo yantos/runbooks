@@ -135,7 +135,6 @@ If you need to regenerate the local audit tarball, use:
 
 ```bash
 cd "$UPGRADE_ROOT/docker-work/moodle"
-. \( -name '.DS_Store' -o -name '._*' \) -type f -print -delete
 /usr/bin/tar --exclude='./.git' --exclude='.DS_Store' --exclude='._*' \
   -czf "$UPGRADE_ROOT/stage-exports/after-5.1.6/moodle-code.tgz" .
 ```

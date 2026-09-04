@@ -102,40 +102,6 @@ git fetch --tags
 git checkout v3.11.10
 ```
 
-## Shell Setup
-
-After the Moodle Docker checkout and `.env` exist:
-
-```bash
-cd "<active-upgrade-root>/docker-work/moodle-docker"
-set -a
-source .env
-set +a
-```
-
-Repair the shell if normal commands such as `ls`, `grep`, `cp`, or `dirname` disappear:
-
-```bash
-export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"; hash -r
-```
-
-Confirm important paths:
-
-```bash
-printf 'UPGRADE_ROOT=%s\nMOODLE_DOCKER_DIR=%s\nMOODLE_DOCKER_WWWROOT=%s\nSOURCE_EXPORT=%s\nSOURCE_HTML=%s\nMOODLE_DOCKER_MOODLEDATA=%s\n' \
-  "$UPGRADE_ROOT" "$MOODLE_DOCKER_DIR" "$MOODLE_DOCKER_WWWROOT" "$SOURCE_EXPORT" "$SOURCE_HTML" "$MOODLE_DOCKER_MOODLEDATA"
-```
-
-## Finder Metadata
-
-Quietly remove macOS Finder metadata from the Moodle code tree before upgrades and snapshots:
-
-```bash
-
-```
-
-Finder can recreate `.DS_Store` files whenever the Moodle tree is open in a Finder window. The simplest prevention is to keep these upgrade folders out of Finder while running the rehearsal and use Terminal/Codex for browsing them.
-
 ## First Baseline
 
 The first stage should establish Moodle 3.11.2 in Docker before moving to 3.11.10. After import and configuration, run the health block from `admin-cheatsheet-moodle-docker.md`.

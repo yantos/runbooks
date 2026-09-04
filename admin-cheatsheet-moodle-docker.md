@@ -59,16 +59,6 @@ rm -rf /var/www/moodledata/temp/*
 
 Then run the Moodle health block.
 
-## Finder Metadata Cleanup
-
-Quietly remove macOS Finder metadata from the Moodle Docker code tree before upgrades and snapshots:
-
-```bash
-cd "$MOODLE_DOCKER_DIR"
-
-
-```
-
 ## Database Snapshot
 
 Safe dump pattern for MariaDB 10.11 and earlier images where `mysqldump` exists:
