@@ -79,6 +79,7 @@ Use only when intentionally throwing away the local Docker DB and reimporting fr
 cd "$MOODLE_DOCKER_DIR"
 
 bin/moodle-docker-compose down -v
+
 bin/moodle-docker-compose up -d db
 bin/moodle-docker-wait-for-db
 

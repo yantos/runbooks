@@ -24,6 +24,31 @@ For Moodle 3.11, run cron without `--keep-alive=0`:
 sudo -u www-data php admin/cli/cron.php
 ```
 
+## Production Cron Enablement
+
+System cron, the `www-data` crontab, and Moodle's own cron switch are separate checks:
+
+```bash
+cd /var/www/moodle
+
+sudo systemctl enable --now cron
+sudo crontab -u www-data -l
+sudo -u www-data php admin/cli/cron.php --enable
+sudo -u www-data php admin/cli/cron.php --list
+```
+
+Production crontab entry:
+
+```cron
+* * * * * /usr/bin/php /var/www/moodle/admin/cli/cron.php >/dev/null 2>&1
+```
+
+If `checks.php` reports `WARNING: Cron running (tool_task_cronrunning)`, cron may still be firing correctly. The warning is based on completed Moodle cron runs; long tasks or a nonzero Moodle keepalive setting can make completed runs appear several minutes apart. For normal system cron, keep the crontab plain and set:
+
+```text
+Site administration > Server > Tasks > Task processing > Keep alive time = 0
+```
+
 ## Production Mail Smoke Test
 
 After production cutover or SMTP changes, test both Moodle's core outgoing mail page and the eMail Test plugin:

@@ -99,6 +99,46 @@ ls -lh "$DUMP_DIR/moodle-db.sql.gz"
 
 Avoid piping `bin/moodle-docker-compose exec ... dump` directly into a local file. The Moodle Docker wrapper can print local option text into stdout and contaminate the SQL file.
 
+## Restore A DB Snapshot
+
+Use this when the local Docker database needs to return to a saved stage snapshot. This destroys and recreates only the Docker DB volume for the current `COMPOSE_PROJECT_NAME`; it does not touch `source-export`, `additional-plugins`, `stage-exports`, Moodle code, or Moodledata bind mounts.
+
+Confirm you are in the intended rehearsal's `moodle-docker` directory and that `.env` names the intended project before running `down -v`:
+
+```bash
+cd "$MOODLE_DOCKER_DIR"
+
+printf 'COMPOSE_PROJECT_NAME=%s\nMOODLE_DOCKER_DB_VERSION=%s\nMOODLE_DOCKER_PHP_VERSION=%s\nMOODLE_DOCKER_WEB_PORT=%s\n' \
+  "$COMPOSE_PROJECT_NAME" "$MOODLE_DOCKER_DB_VERSION" "$MOODLE_DOCKER_PHP_VERSION" "$MOODLE_DOCKER_WEB_PORT"
+```
+
+Restore a gzipped snapshot:
+
+```bash
+cd "$MOODLE_DOCKER_DIR"
+
+SNAPSHOT_SQL="$UPGRADE_ROOT/stage-exports/<snapshot-name>/moodle-db.sql.gz"
+gzip -t "$SNAPSHOT_SQL"
+
+bin/moodle-docker-compose down -v
+bin/moodle-docker-compose up -d db
+bin/moodle-docker-wait-for-db
+
+DB_CONTAINER=$(bin/moodle-docker-compose ps -q db | /usr/bin/tail -n 1)
+docker cp "$SNAPSHOT_SQL" "$DB_CONTAINER:/tmp/moodle-db.sql.gz"
+
+bin/moodle-docker-compose exec -T db sh -lc \
+  "mysql -uroot -p\"\$MYSQL_ROOT_PASSWORD\" -e 'CREATE DATABASE IF NOT EXISTS $MOODLE_DOCKER_DBNAME DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'"
+
+bin/moodle-docker-compose exec -T db sh -lc \
+  "gzip -dc /tmp/moodle-db.sql.gz | mysql -uroot -p\"\$MYSQL_ROOT_PASSWORD\" \"$MOODLE_DOCKER_DBNAME\""
+
+bin/moodle-docker-compose up -d webserver
+bin/moodle-docker-compose ps
+```
+
+After restore, run the stage health checks before continuing the upgrade.
+
 ## Database Query Blocks
 
 Use `mysql` for MariaDB 10.11 and earlier images:
@@ -130,6 +170,15 @@ To run any DB query in Docker:
 ```bash
 bin/moodle-docker-compose exec -T db mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MOODLE_DOCKER_DBNAME" -e "SQL_QUERY"
 bin/moodle-docker-compose exec -T db mariadb -uroot -p"$MYSQL_ROOT_PASSWORD" "$MOODLE_DOCKER_DBNAME" -e "SQL_QUERY"
+```
+
+To open an interactive DB prompt, do not use `-T`. The `-T` flag disables the TTY and is for one-off commands:
+
+```bash
+cd "$MOODLE_DOCKER_DIR"
+
+bin/moodle-docker-compose exec db mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MOODLE_DOCKER_DBNAME"
+bin/moodle-docker-compose exec db mariadb -uroot -p"$MYSQL_ROOT_PASSWORD" "$MOODLE_DOCKER_DBNAME"
 ```
 
 ## Runtime Checks
