@@ -1,31 +1,34 @@
 # Moodle Docker Setup
 
-Starter setup notes for a Moodle 3.11.2 local Docker rehearsal.
+Starter setup notes for a Moodle 3.11.2 local Docker dev environment.
 
 ## Paths
 
-Replace `<active-upgrade-root>` with the instance being prepared:
+Replace `<active-dev-root>` with the instance being prepared:
 
 ```text
-/Users/yanoverfieldshaw/Projects/Moodle/UPGRADES/mainmoodle-upgrade-2026
-/Users/yanoverfieldshaw/Projects/Moodle/UPGRADES/prepmoodle-upgrade-2026
+/Users/yanoverfieldshaw/Projects/Moodle/DEV(MOODLE_311)
 ```
 
 The expected local Docker working directories are:
 
 ```text
+docker-work/additional-plugins
 docker-work/moodle
 docker-work/moodle-docker
+docker-work/moodledata
+docker-work/source-files
 ```
+Only moodle and moodle-docker are created by the git install process below - the other directories are for convenience.
 
-Create or populate those directories during the setup stage. Keep `source-export`, `additional-plugins`, and `production-import` read-only.
+Create or populate those directories during the setup stage. Keep `source-files` and `additional-plugins` read-only.
 
 ## Get Moodle Docker
 
 Clone the Moodle Docker tooling into the local Docker work area:
 
 ```bash
-cd "<active-upgrade-root>/docker-work"
+cd "<active-dev-root>/docker-work"
 
 git clone https://github.com/moodlehq/moodle-docker.git moodle-docker
 ```
@@ -33,49 +36,39 @@ git clone https://github.com/moodlehq/moodle-docker.git moodle-docker
 If the checkout already exists, update it instead:
 
 ```bash
-cd "<active-upgrade-root>/docker-work/moodle-docker"
+cd "moodle-docker"
 
 git pull --ff-only
 ```
 
 ## Create Moodle Docker `.env`
 
-Create the Moodle Docker environment file at `<active-upgrade-root>/docker-work/moodle-docker/.env`.
+Create the Moodle Docker environment file at `moodle-docker/.env`.
 
 Use instance-specific ports and project names so multiple rehearsal containers can run side by side. Keep this as plain `.env` syntax, not `export` commands:
 
-```text
-UPGRADE_ROOT=<active-upgrade-root>
-MOODLE_DOCKER_DIR=<active-upgrade-root>/docker-work/moodle-docker
-MOODLE_DOCKER_WWWROOT=<active-upgrade-root>/docker-work/moodle
-MOODLE_DOCKER_MOODLEDATA=<active-upgrade-root>/moodle-work/moodledata
-
-COMPOSE_PROJECT_NAME=<instance-name>-moodle-upgrade-2026
+```txt
+DEV_ROOT=/Users/yanoverfieldshaw/Projects/Moodle/DEV
+SCRIPTS_ROOT=/Users/yanoverfieldshaw/Projects/Moodle/DEV/MOODLE_311/moodle_scripts
+SOURCE_FILES=/Users/yanoverfieldshaw/Projects/Moodle/DEV/MOODLE_311/docker-work/source-files
+SOURCE_DB=/Users/yanoverfieldshaw/Projects/Moodle/DEV/MOODLE_311/docker-work/source-files/moodle-db.sql.gz
+SOURCE_MOODLEDATA=/Users/yanoverfieldshaw/Projects/Moodle/DEV/MOODLE_311/docker-work/source-files/moodledata.tar
+MOODLE_DOCKER_MOODLEDATA=/Users/yanoverfieldshaw/Projects/Moodle/DEV/MOODLE_311/docker-work/moodledata
+MOODLE_DOCKER_WWWROOT=/Users/yanoverfieldshaw/Projects/Moodle/DEV/MOODLE_311/docker-work/moodle
+MOODLE_DOCKER_DIR=/Users/yanoverfieldshaw/Projects/Moodle/DEV/MOODLE_311/docker-work/moodle-docker
 MOODLE_DOCKER_DB=mariadb
 MOODLE_DOCKER_DB_VERSION=10.6
-MOODLE_DOCKER_DBNAME=moodle
-MOODLE_DOCKER_WEB_HOST=localhost
-MOODLE_DOCKER_WEB_PORT=<local-web-port>
 MOODLE_DOCKER_PHP_VERSION=7.4
-MYSQL_ROOT_PASSWORD=m@0dl3ing
-```
-
-Suggested instance-specific values:
-
-```text
-COMPOSE_PROJECT_NAME=mainmoodle-upgrade-2026
-MOODLE_DOCKER_WEB_PORT=8036
-```
-
-```text
-COMPOSE_PROJECT_NAME=prepmoodle-upgrade-2026
 MOODLE_DOCKER_WEB_PORT=8311
+COMPOSE_PROJECT_NAME=local-moodle-311
+MOODLE_DOCKER_DBNAME=moodle
+MYSQL_ROOT_PASSWORD=m@0dl3ing
 ```
 
 After creating `.env`, load it in the current shell before running Moodle Docker commands:
 
 ```bash
-cd "<active-upgrade-root>/docker-work/moodle-docker"
+cd "<active-dev-root>/docker-work/moodle-docker"
 set -a
 source .env
 set +a
@@ -93,15 +86,77 @@ cd "<active-upgrade-root>/docker-work/moodle"
 git checkout v3.11.2
 ```
 
-For the later 3.11.10 stage, fetch tags and check out the target tag:
+## local moodle-docker setup
+
+Copy the config.php from moodle-docke into the moodle directory:
 
 ```bash
-cd "<active-upgrade-root>/docker-work/moodle"
-
-git fetch --tags
-git checkout v3.11.10
+cp ../moodle-docker/config.docker-template.php config.php
 ```
 
-## First Baseline
+Make sure the $CFG->prefix line in config.php matches the table names in the exported Moodle db - the default is 'm_' but Bilkent uses = 'mdl_'
 
-The first stage should establish Moodle 3.11.2 in Docker before moving to 3.11.10. After import and configuration, run the health block from `admin-cheatsheet-moodle-docker.md`.
+```bash
+$CFG->prefix    = 'mdl_';
+```
+
+Create a local.yml to specify the local configuration. The following points moodle-docker to a moodledata directory in docker-work, as exported data is usually larger than moodle-docker 1GB webserver capacity.
+
+```yaml
+services:
+  webserver:
+    environment:
+      APACHE_DOCUMENT_ROOT: /var/www/html/public
+    volumes:
+      - "${MOODLE_DOCKER_MOODLEDATA}:/var/www/moodledata"
+  db:
+    volumes:
+      - moodle-db-data:/var/lib/mysql
+
+volumes:
+  moodle-db-data:
+```
+
+## install exported Moodle code
+
+unzip moodle source code and identify custom and additional plugins. Copy these directories to the moodle directory in the appropriate place in the moodle code tyree, e.g. local/bilkent or mod/board etc. For convenience and clarity, you may also copy the directories to the docker-work/additional-plugins directory.
+
+## install exported Moodle DB
+
+initialize the Moodle db
+```bash
+bin/moodle-docker-compose up -d db
+bin/moodle-docker-wait-for-db
+```
+
+For an initial source export, use the plain SQL file:
+
+```bash
+cd "$MOODLE_DOCKER_DIR"
+
+docker cp "$SOURCE_FILES/moodle-db-source.sql" "$(bin/moodle-docker-compose ps -q db | /usr/bin/tail -n 1):/tmp/moodle-db-source.sql"
+
+bin/moodle-docker-compose exec -T db sh -lc \
+  'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < /tmp/moodle-db-source.sql'
+```
+
+If the db was compressed / normalized into `moodle-db-source.sql.gz`:
+
+```bash
+docker cp "$SOURCE_FILES/moodle-db-source.sql.gz" "$(bin/moodle-docker-compose ps -q db | /usr/bin/tail -n 1):/tmp/moodle-db-source.sql.gz"
+
+bin/moodle-docker-compose exec -T db sh -lc \
+  'gzip -dc /tmp/moodle-db-source.sql.gz | mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'
+
+```
+Start the webserver
+```bash
+bin/moodle-docker-compose up -d webserver
+bin/moodle-docker-compose ps
+```
+
+## Next steps
+
+To reset / redo any stage of the process, see `moodle-docker-frequent-commands.md`
+
+After import and configuration, run the health block from `admin-cheatsheet-moodle-docker.md`.

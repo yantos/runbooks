@@ -4,7 +4,15 @@ Common local Docker commands for a Moodle upgrade rehearsal.
 
 ## Docker Basics
 
+Set docker work env vars from moodle-docker/.env
+
 ```bash
+cd ../moodle-docker
+
+set -a
+source .env
+set +a
+
 cd "$MOODLE_DOCKER_DIR"
 
 bin/moodle-docker-compose ps
@@ -34,12 +42,6 @@ bin/moodle-docker-compose ps
 Use after changing `.env`, images, `local.yml`, or Apache config. Preserves the current DB volume:
 
 ```bash
-cd mainmoodle-upgrade-2026/docker-work/moodle-docker
-
-set -a
-source .env
-set +a
-
 cd "$MOODLE_DOCKER_DIR"
 
 bin/moodle-docker-compose stop webserver
@@ -53,11 +55,6 @@ bin/moodle-docker-compose ps
 Use after changing `MOODLE_DOCKER_DB_VERSION`. Preserves the named DB volume:
 
 ```bash
-cd "$MOODLE_DOCKER_DIR"
-set -a
-source .env
-set +a
-
 bin/moodle-docker-compose stop webserver
 bin/moodle-docker-compose stop db
 bin/moodle-docker-compose pull db
@@ -80,25 +77,4 @@ cd "$MOODLE_DOCKER_DIR"
 
 bin/moodle-docker-compose down -v
 
-bin/moodle-docker-compose up -d db
-bin/moodle-docker-wait-for-db
 
-docker cp "$SOURCE_EXPORT/moodle-db-source.sql.gz" "$(bin/moodle-docker-compose ps -q db | /usr/bin/tail -n 1):/tmp/moodle-db-source.sql.gz"
-
-bin/moodle-docker-compose exec -T db sh -lc \
-  'gzip -dc /tmp/moodle-db-source.sql.gz | mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'
-
-bin/moodle-docker-compose up -d webserver
-bin/moodle-docker-compose ps
-```
-
-For an initial source export, use the plain SQL file if it has not yet been normalized into `moodle-db-source.sql.gz`:
-
-```bash
-cd "$MOODLE_DOCKER_DIR"
-
-docker cp "$SOURCE_EXPORT/<source-sql-file>.sql" "$(bin/moodle-docker-compose ps -q db | /usr/bin/tail -n 1):/tmp/moodle-db-source.sql"
-
-bin/moodle-docker-compose exec -T db sh -lc \
-  'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < /tmp/moodle-db-source.sql'
-```
