@@ -121,6 +121,10 @@ volumes:
 
 unzip moodle source code and identify custom and additional plugins. Copy these directories to the moodle directory in the appropriate place in the moodle code tyree, e.g. local/bilkent or mod/board etc. For convenience and clarity, you may also copy the directories to the docker-work/additional-plugins directory.
 
+```bash
+
+```
+
 ## install exported Moodle DB
 
 initialize the Moodle db
