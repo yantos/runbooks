@@ -119,11 +119,32 @@ volumes:
 
 ## install exported Moodle code
 
-unzip moodle source code and identify custom and additional plugins. Copy these directories to the moodle directory in the appropriate place in the moodle code tyree, e.g. local/bilkent or mod/board etc. For convenience and clarity, you may also copy the directories to the docker-work/additional-plugins directory.
+unzip moodle source code and identify custom and additional plugins. Copy these directories to the moodle directory in the appropriate place in the moodle code tree, e.g. local/bilkent or mod/board etc. For convenience and clarity, you may also copy the directories to the docker-work/additional-plugins directory. The following rsync command achieves this.
 
 ```bash
+cd /path/to/additional-plugins
 
+rsync -av --relative \
+  public/auth/userkey \
+  public/local/bilkent \
+  public/local/mailtest \
+  public/mod/board \
+  public/mod/checklist \
+  public/mod/game \
+  public/mod/hvp \
+  public/mod/pdfannotator \
+  public/mod/publication \
+  public/mod/questionnaire \
+  public/mod/ratingallocate \
+  public/mod/scheduler \
+  public/plagiarism/turnitin \
+  public/theme/boost_union \
+  public/theme/moove \
+  ../path/to/moodle/
 ```
+Key detail: do not add trailing slashes to the plugin paths.
+Use public/mod/board, not public/mod/board/, so rsync preserves the full target path.
+The moodle directory needs a trailing slash
 
 ## install exported Moodle DB
 
@@ -150,7 +171,7 @@ If the db was compressed / normalized into `moodle-db-source.sql.gz`:
 docker cp "$SOURCE_FILES/moodle-db-source.sql.gz" "$(bin/moodle-docker-compose ps -q db | /usr/bin/tail -n 1):/tmp/moodle-db-source.sql.gz"
 
 bin/moodle-docker-compose exec -T db sh -lc \
-  'gzip -dc /tmp/moodle-db-source.sql.gz | mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'
+  'gzip -dc /tmp/moodle-db-source.sql.gz | mariadb -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'
 
 ```
 Start the webserver
