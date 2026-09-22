@@ -9,9 +9,7 @@ After the Moodle Docker checkout and `.env` exist:
 ```bash
 cd "cd /Users/yanoverfieldshaw/Projects/Moodle/UPGRADES/<active-upgrade-root>/docker-work/moodle-docker"
 
-set -a
-source .env
-set +a
+source ../env/.env-<version-number>
 ```
 
 Repair the shell if normal commands such as `ls`, `grep`, `cp`, or `dirname` disappear:

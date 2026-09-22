@@ -38,9 +38,7 @@ On your local machine:
 
 ```bash
 cd <active-upgrade-root>/docker-work/moodle-docker
-set -a
-source .env
-set +a
+source ../env/.env-<version-number>
 ```
 
 Confirm Moodle version:

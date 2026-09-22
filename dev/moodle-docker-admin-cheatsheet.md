@@ -11,6 +11,8 @@ For Moodle 4.5 and later: (n.b, Moodle 3.11 has no --keep-alive=0 flag for cron)
 ```bash
 cd "$MOODLE_DOCKER_DIR"
 
+bin/moodle-docker-compose exec -T webserver php admin/cli/upgrade.php
+
 bin/moodle-docker-compose exec -T webserver php admin/cli/purge_caches.php
 bin/moodle-docker-compose exec -T webserver php admin/cli/check_database_schema.php
 bin/moodle-docker-compose exec -T webserver php admin/cli/cron.php --keep-alive=0

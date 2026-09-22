@@ -9,9 +9,7 @@ Set docker work env vars from moodle-docker/.env
 ```bash
 cd ../moodle-docker
 
-set -a
-source .env
-set +a
+source ../env/.env-<version-number>
 
 cd "$MOODLE_DOCKER_DIR"
 
